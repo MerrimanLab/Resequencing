@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+#
+# Merge the output files from the VCF utilities folder.
+#
+import argparse
+import sys
+
+ACCEPTED_SCRIPTS=['eff_table','cases_and_controls','sample_with_genotypes']
+
+def open_all(input_files):
+    return [open(s) for s in input_files]
+
+def read_multiple(input_files):
+    return [s.readline() for s in input_files]
+
+def close_all(input_files):
+    [s.close() for s in input_files]
+
+def get_first_five(line):
+    return '\t'.join(line.strip().split('\t')[:5])
+
+def get_full_line(lines):
+    return '\t'.join(['\t'.join(s.strip().split('\t')[5:]) for s in lines])
+
+def merge(input_files):
+    files =open_all(input_files)
+    read_line = read_multiple(files)
+    print("#merged")
+    no_accepted = [ 1 if s.split('\t')[0].replace("#","") in ACCEPTED_SCRIPTS else 0 for s
+            in read_line]
+    if (sum(no_accepted) != len(input_files)):
+        sys.stderr.write("Input Files does not look to originate in correct format\n")
+    # Read second line
+    while(read_line[1] != ""):
+        read_line = read_multiple(files)
+        final_line = get_first_five(read_line[0])
+        final_line = '\t'.join([final_line,get_full_line(read_line)])
+        print(final_line)
+    close_all(files)
+
+def main():
+    parser = argparse.ArgumentParser(description="Merge files generated in this pipeline")
+    parser.add_argument('vtxtfiles', nargs="*")
+    args = parser.parse_args()
+    assert len(args.vtxtfiles) > 1, \
+            "Require more than one file, merging a file with itself is just masturbation"
+    merge(args.vtxtfiles)
+
+if __name__=="__main__":
+    main()

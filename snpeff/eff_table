@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+#
+# Doesn't perform filtering but rather extracts the eff column and pretty formats
+#
+
+import argparse
+
+
+def print_eff_table(vcf_file):
+    print("#eff_table\t"+vcf_file)
+    print("Chrom\tPos\tID\tREF\tALT\tGENE\tDAMAGE\tTYPE\tEFFECT")
+    count_effects = {}
+    with open(vcf_file) as f:
+        for line in f:
+            if "#" in line:
+                continue
+            line = line.split('\t')
+            info_field = line[7].split(';')
+            chrom = line[0]
+            pos = line[1]
+            id = line[2]
+            ref = line[3]
+            alt = line[4]
+            # First field
+            effect_field = [s for s in info_field if 'EFF' in s][0].split('=')[1]
+            if("HIGH" in effect_field):
+                DAMAGE="HIGH"
+            elif("MODERATE" in effect_field):
+                DAMAGE="MODERATE"
+            else:
+                DAMAGE="LOW"
+            left_b = effect_field.find('[')
+            left_paren = effect_field.find('(')
+            if(left_b < left_paren and left_b != -1):
+                first_effect=effect_field.split('[')[0]
+                gene = effect_field.split('|')[5]
+            else:
+                first_effect=effect_field.split('(')[0]
+                gene = effect_field.split('|')[5]
+            effect_print = effect_field.split(',')[0]
+            print('\t'.join([chrom,pos,id,ref,alt,gene,DAMAGE,first_effect,effect_print]))
+            # Generate the EFF field 
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Output EFF fields")
+    parser.add_argument('vcf_file',help="VCF_input")
+    args = parser.parse_args()
+    assert args.vcf_file != None, \
+         "You need to specify a VCF input file"
+    print_eff_table(args.vcf_file) 
+
+if __name__=="__main__":
+    main()

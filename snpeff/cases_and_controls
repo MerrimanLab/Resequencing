@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# Outputs tab delimited file, which has filtered the vcf file
+# so that it contains exactly what we want
+#
+import argparse
+
+def get_cases_control_print(input_vcf,no_cases):
+    print("#cases_and_controls\t" + input_vcf)
+    print("Chrom\tPos\tID\tREF\tALT\tCase_Ref\tCase_Het\tCase_Hom\tControl_Ref\tControl_Het\tControl_Ref\tCC_ALL\tAlellic_P")
+    with open(input_vcf) as f:
+        for line in f:
+            if ("#" in line):
+                continue
+            line = line.split('\t')  
+            info_field = line[7].split(';')
+            length = (len(line) - 9) 
+            chrom = line[0]
+            pos = line[1]
+            id = line[2]
+            ref = line[3]
+            alt = line[4]
+            cases = [s for s in info_field if 'Cases' in s][0].split('=')[1].split(',')
+            controls = [s for s in info_field if 'Controls' in s][0].split('=')[1].split(',')
+            # This is just the output of snpsift, probably could write
+            # Need to append to this so that it takes into account missing genotypes
+            # which, at the moment we currently do not have.
+            #
+
+            no_controls = length - int(no_cases)
+            case_het = cases[1]
+            case_hom = cases[0]
+            case_ref = str(length - int(case_het) - int(case_hom) - int(no_controls))
+            cont_het = controls[1]
+            cont_hom = controls[0]
+            cont_ref = str(length - int(no_cases) - int(cont_hom)- int(cont_het))
+            p_allelic = [s for s in info_field if 'CC_ALL' in s][0].split('=')[1]
+            print('\t'.join([chrom,pos,id,ref,alt,case_ref,case_het,case_hom,cont_ref,cont_het,cont_hom,p_allelic]))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Retrieves the Cases and Controls group, places them into tab-delimited file based on counts")
+    parser.add_argument('input_vcf', help='VCF input file')
+    parser.add_argument('-c',dest='case_numbers',help='number of cases')
+    args = parser.parse_args()
+    assert args.case_numbers != None, \
+        "You need to specify the number of cases using the -c argument"
+    get_cases_control_print(args.input_vcf, args.case_numbers)
+
+if __name__=="__main__":
+    main()
+
